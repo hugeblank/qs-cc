@@ -8,7 +8,7 @@ if not fs.exists(dir.."/nap.lua") then
     if not req then
         error("Could not download necessary APIs", 2)
     end 
-    local file = fs.open(dir.."nap.lua", "w")
+    local file = fs.open(dir.."/nap.lua", "w")
     file.write(req.readAll())
     file.close()
 end
