@@ -1,3 +1,6 @@
+-- gget by hugeblank
+-- Downloads and installs repositories and their submodules much like the beloved gitget
+-- Usage: gget username repository branch[default=master] path[default=/]
 local args = {...}
 local dir = fs.getDir(shell.getRunningProgram())
 if not fs.exists(dir.."/nap.lua") then
@@ -9,7 +12,7 @@ if not fs.exists(dir.."/nap.lua") then
     file.write(req.readAll())
     file.close()
 end
-if not fs.exists(dir.."/json.lua") then
+if not fs.exists(dir.."/json.lua") then -- json parse by RXI, check it out!
     local req = http.get("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
     if not req then
         error("Could not download necessary APIs", 2)
@@ -29,14 +32,14 @@ end
 local function gget(user, repo, branch, path)
     path = fs.combine(path or "", "")
     branch = branch or "master"
-    local function downFile(url, path)
+    local function downFile(url, path) -- Download a file asynchronously
         local req = http.request(url)
         if not req then
             error("Could not download file "..path, 2)
         end
         return url, path
     end
-    local function downJSON(call, repo)
+    local function downJSON(call, repo) -- Download and parse a presumed JSON object
         if call then
             call = json.decode(call.readAll())
         else
