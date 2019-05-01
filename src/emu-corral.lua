@@ -1,3 +1,10 @@
+--[[ Emu-Corral by hugeblank
+    Emu-corral is a simple emulator workspace managment script.
+    Simply add the name of the project that correlates with the ID of the computer it's on into the `emus` variable
+    For example "Project 1" would be on computer ID 1.
+]]
+local i_use_mac = false -- For people that use mac and hate the damn JFX issue
+
 os.pullEvent = os.pullEventRaw -- Lock down this computer, we don't really need direct access to it
 local title = "Your Emus:" -- Replace this with whatever you want to have as the header of this menu
 local emus = {"Project 1"} -- Your projects. 
@@ -20,6 +27,10 @@ end
 
 local function menu() -- Function used to draw the menu
     term.clear() -- Clear the screen
+    if i_use_mac then
+        term.setCursorPos(1, 1)
+        term.write(".") -- Stop the white flash dead in its tracks
+    end
     write(title, -2) -- Write the menu title
     for i = 1, #emus do -- For each project
         write(emus[i], i) -- Write it using the project ID as the id parameter
@@ -35,7 +46,18 @@ repeat
     term.setCursorPos((x/2)-(ctr/2)-2, (y/2)-(#emus/2)+selected) -- Set the cursor position to the currently selected project
     term.setTextColor(colors.yellow) -- Set the text color to yellow
     term.write(">") -- Write the cursor
-    local k = ({os.pullEvent("key")})[2] -- Pull whatever key is being pressed
+    local k = ({os.pullEvent()}) -- Pull everything
+    if k[1] == "mouse_scroll" then -- If the event is a scroll event
+        if k[2] == 1 then -- If the scrolling is down
+            k = keys.down -- set k to the down key
+        else -- OTHERWISE
+            k = keys.up -- Set k to the up key
+        end
+    elseif k[1] == "key" then -- If the event is a key
+        k = k[2] -- Set k to the key number
+    else -- OTHERWISE
+        k = nil -- Throw k away
+    end
     if k then
         if k == keys.enter then -- If it's the enter key
                 open = selected -- Set open to selected
@@ -44,7 +66,7 @@ repeat
                 selected = 0 -- Wrap back around, and account for the addition out of this block
             end
             selected = selected+1 -- Move the cursor down by one
-        elseif k == keys.up then -- If it's the down arrow
+        elseif k == keys.up then -- If it's the up arrow
             if selected == 1 then -- If the selected value is the smallest one
                 selected = #emus+1 -- Wrap back around, and account for the subtraction out of this block
             end

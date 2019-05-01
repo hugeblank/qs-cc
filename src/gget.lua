@@ -35,7 +35,7 @@ local function gget(user, repo, branch, path)
     local function downFile(url, path) -- Download a file asynchronously
         local req = http.request(url)
         if not req then
-            error("Could not download file "..path, 2)
+            error("Could not download file "..path, 4)
         end
         return url, path
     end
@@ -43,7 +43,7 @@ local function gget(user, repo, branch, path)
         if call then
             call = json.decode(call.readAll())
         else
-            error("Could not locate repository "..repo, 3)
+            error("Could not locate repository "..repo, 4)
         end
         return call
     end
