@@ -48,7 +48,7 @@ do -- Block to keep cache value private
         if not http.checkURL(url) then -- Check for the existence of the URL
             error("Could not download dependency data")
         end
-        local contents, file = http.get(url) -- Get the contents
+        local contents = http.get(url) -- Get the contents
         local out = textutils.unserialise(contents.readAll()) -- Read it all
         if not out then 
             error("Could not parse dependency data")
@@ -78,7 +78,7 @@ local function applyData(name, meta) -- Set data within the local dependency lis
     data[name] = meta -- Add the new index
     local file = fs.open(path, "w") -- Open the listing file
     if not file then -- If it can't be opened for writing
-        error("Could not save dependeny data")
+        error("Could not save dependency data")
     end
     file.write(textutils.serialise(data)) -- Write the serialized listing
     file.close() -- Close
@@ -86,34 +86,34 @@ local function applyData(name, meta) -- Set data within the local dependency lis
 end
 
 local function checkVersions(versions) -- Check versions within a range, comparison, or explicit list
+    local function convert(str) -- Use the semver API to convert. Provide a detailled error if conversion fails
+        if type(str) ~= "string" then
+            error("Could not convert "..tostring(str))
+        end
+        local ver, rule = semver.parse(str:gsub("%s", ""))
+        if not ver then
+            error("Could not parse "..str:gsub("%s", "")..", breaks semver spec rule "..rule)
+        end
+        return ver
+    end
+    local version = convert(version) -- Duplicates the version of the main program, lowering the scope so we can parse it
+    local function compare(in_str) -- compare version provided in string to input versions, using the operator provided
+        local _, split = in_str:find("[><][=]*")
+        local lim, op, res = convert(in_str:sub(split+1)), in_str:sub(1, split), nil -- Split operator and version string
+        if op == ">" then
+            res = version > lim
+        elseif op == "<" then
+            res =  version < lim
+        elseif op == ">=" then
+            res = version >= lim
+        elseif op == "<=" then
+            res = version <= lim
+        end
+        return res
+    end
     for _, vstr in pairs(versions) do
         local range = vstr:find("&&") -- Matched a range definition
         local comp, c_e = vstr:find("[><][=]*") -- I do love me some pattern matching
-        local function convert(str) -- Use the semver API to convert. Provide a detailled error if conversion fails
-            if type(str) ~= "string" then
-                error("Could not convert "..tostring(str))
-            end
-            local ver, rule = semver.parse(str:gsub("%s", ""))
-            if not ver then
-                error("Could not parse "..str:gsub("%s", "")..", breaks semver spec rule "..rule)
-            end
-            return ver
-        end
-        local version = convert(version) -- Duplicates the version of the main program, lowering the scope so we can parse it
-        local function compare(in_str) -- compare version provided in string to input versions, using the operator provided
-            local _, split = in_str:find("[><][=]*")
-            local lim, op, res = convert(in_str:sub(split+1)), in_str:sub(1, split), nil -- Split operator and version string
-            if op == ">" then
-                res = version > lim
-            elseif op == "<" then
-                res =  version < lim
-            elseif op == ">=" then
-                res = version >= lim
-            elseif op == "<=" then
-                res = version <= lim
-            end
-            return res
-        end
 		if range then -- If there's a range beginning definition
 			local a, b = compare(vstr:sub(1, range-1)), compare(vstr:sub(range+3, -1))
 			if a and b then
@@ -166,16 +166,16 @@ tasks.update = function() -- The generic update task, made for you
     local depmeta = filterDeps() -- Get all dependencies to be updated
     for name, meta in pairs(depmeta) do -- For each dependency
         if not http.checkURL(meta.source) then -- Check that the source is valid
-            printError("Could not locate dependency "..name) -- Mention it couldn't be found then move on
+            printError("Could not locate dependency "..name or "") -- Mention it couldn't be found then move on
         end
         local contents, file = http.get(meta.source), fs.open(fs.combine(lib_path, name), "w")
         -- Download the library, and open the file to dump it in
         if not file then -- If it couldn't be opened
-            error("Could not write dependency "..name) -- Crash and burn
+            error("Could not write dependency "..name or "") -- Crash and burn
         end
         file.write(contents.readAll()) -- Write the library to the file
-        meta.path, meta.versions = nil, nil -- Remove the unnecessary contents in the dependency metadata
-        applyData(name, meta) -- Apply that data to the dependency listing file
+        file.close() -- Close the file, as you should always do
+        applyData(name, meta.source) -- Apply relevant data to the dependency listing file
     end
     return true -- Job done.
 end
