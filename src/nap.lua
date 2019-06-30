@@ -59,7 +59,7 @@ return function(str) -- function that takes a base URL to start from
         elseif type(data.method) ~= "string" then
             error("Invalid argument #1 (key 'method' as a string expected, got "..type(data.method)..")", 2)
         end
-        data.url = mt.url
+        data.url = mt.url:sub(1, -2)
         mt.url = "" -- clear the URL for next use
         if data.method:lower() == "get" and not data.async then
             if type(data.query) == "table" then -- Convert the get query to a string if it's a table
@@ -69,18 +69,13 @@ return function(str) -- function that takes a base URL to start from
                         temp = temp..k.."="..v.."&"
                     end
                 end
-                data.query = temp:sub(1, -2)
-            end
-            if data.query then 
-                data.url = data.url:sub(1, -2).."?"..data.query -- Append data like it's a query string
+                data.url = data.url.."?"..temp:sub(1, -2) -- Append data like it's a query string
                 data.query = nil
             end
             return http.get(data)
         elseif not data.async then
-            data.url = data.url:sub(1, -2) -- remove excess slash
             return http.post(data)
         else
-            data.url = data.url:sub(1, -2) -- remove excess slash
             data.async = nil
             return http.request(data)
         end
