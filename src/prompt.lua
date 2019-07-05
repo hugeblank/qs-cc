@@ -12,7 +12,7 @@ Features:
   - newline (boolean): If set to false will remove the newline read appends
   - completeBGColor (number): Changes the Background color of the suggested completion values
   - completeTextColor (number): Changes the Text color of the suggested completion values
-  - filter (function): takes the current input string and feeds it to a function. The function can then manipulate the string and return it.
+  - filter (function): takes the current input string, and position the latest character was written, and feeds it to a function. The function can then manipulate the string and return it.
   - writer (function): changes the function that is used to write to the screen.
   - customkeys (table): a table consisting of all the "special" keys, any and all of which can now be redirected to any other key. Keys that can be redirected (if not redirected, their default is just the key name, prefixed by "keys."): 
     - enter
@@ -39,7 +39,7 @@ function prompt( _tOptions )
     
     term.setCursorBlink( true )
 
-    local sLine
+    local sLine, sLinePreEvent
     if type( _tOptions.prefix ) == "string" then
         sLine = _tOptions.prefix
     else
@@ -97,6 +97,22 @@ function prompt( _tOptions )
     end
 
     local function redraw( _bClear )
+
+        if _tOptions.filter and sLine ~= sLinePreEvent then
+            -- Filter out all unwanted characters/strings using a function defined by the user
+            local sPreFilterLine = sLine
+            sLine = _tOptions.filter( sLine, nPos )
+            if not sLine then
+                sLine = sPreFilterLine
+            else
+                if nPos >= ( string.len( sPreFilterLine ) - string.len( sLine ) ) then
+                    nPos = nPos - ( string.len( sPreFilterLine ) - string.len( sLine ) )
+                else
+                    nPos = 0
+                end
+            end
+        end
+
         local nScroll = 0
         if sx + nPos >= w then
             nScroll = (sx + nPos) - w
@@ -106,7 +122,12 @@ function prompt( _tOptions )
         term.setCursorPos( sx, cy )
         local sReplace = (_bClear and " ") or _tOptions.replaceChar
         if sReplace then
-            writeFunc( string.sub( string.rep( sReplace, math.max( string.len(sLine) + 1, 0 ) ),  nScroll + 1, nScroll + w ) )
+            local sOutput = string.sub( string.rep( sReplace, math.max( string.len(sLine) + 1, 0 ) ),  nScroll + 1, nScroll + w )
+            if _bClear then
+                term.write( sOutput )
+            else
+                writeFunc( sOutput )
+            end
         else
             writeFunc( string.sub( sLine, nScroll + 1, nScroll + w ) )
         end
@@ -166,6 +187,7 @@ function prompt( _tOptions )
     end
     while true do
         local sEvent, param = os.pullEvent()
+        sLinePreEvent = sLine
 
         if sEvent == "char" then
             -- Typed key
@@ -317,28 +339,6 @@ function prompt( _tOptions )
             end
             redraw()
 
-        end
-
-        if _tOptions.filter then
-            -- Filter out all unwanted characters/strings using a function defined by the user
-            local sPreFilterLine = sLine
-            sLine = _tOptions.filter( sLine )
-            if string.len( sPreFilterLine ) ~= string.len( sLine ) then
-                local sPreClearLine = sLine
-                sLine = sPreFilterLine
-                clear()
-                sLine = sPreClearLine
-            end
-            if not sLine then
-                sLine = sPreFilterLine
-            else
-                if nPos >= ( string.len( sPreFilterLine ) - string.len( sLine ) ) then
-                    nPos = nPos - ( string.len( sPreFilterLine ) - string.len( sLine ) )
-                else
-                    nPos = 0
-                end
-            end
-            redraw()
         end
     end
 
