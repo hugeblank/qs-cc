@@ -135,7 +135,7 @@ this.format = function(sText, bAction)
     return outText
 end
 
-this.deformat = function(string)
+this.deformat = function(sText)
     local seperated = {}
 	local out = ""
     for k in string.gmatch(sText, "[^&]+") do
