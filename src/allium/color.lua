@@ -1,4 +1,4 @@
-local this = {}
+local colorAPI = {}
 
 local cTable = {
     ["0"] = "black",
@@ -70,7 +70,7 @@ local function copy(tbl)
 	end
 	return ret
 end
-this.format = function(sText, bAction)
+colorAPI.format = function(sText, bAction)
 	if type(bAction) ~= "boolean" then
 		bAction = true
 	end
@@ -96,7 +96,7 @@ this.format = function(sText, bAction)
 			current["action"] = actions[toParse[1]]
 			local ind, bck = string.find(toParse[2], "%[%[.*%]%]")
 			if ind ~= nil then
-            	current["actionText"] = toParse[2]:sub(ind+2, bck-2)
+				current["actionText"] = toParse[2]:sub(ind+2, bck-2)
 				toParse[2] = toParse[2]:sub(bck+1)
 			else
 				current["actionText"] = toParse[2]
@@ -104,7 +104,7 @@ this.format = function(sText, bAction)
 		elseif other[toParse[1]] ~= nil then
 			if other[toParse[1]] == "hoverEvent" then
 				current["hoverEvent"] = true
-				local ind, bck = string.find(toParse[2], "%[%[.*%]%]")
+				local ind, bck = string.find(toParse[2], "%{.*%}")
 				if ind ~= nil then
 					current["hoverText"] = this.format(toParse[2]:sub(ind+2, bck-2), false)
 					toParse[2] = toParse[2]:sub(bck+1)
@@ -134,18 +134,16 @@ this.format = function(sText, bAction)
     outText = string.sub(outText, 1, -2)..']'
     return outText
 end
-
-this.deformat = function(sText)
+colorAPI.deformat = function(sText)
     local seperated = {}
-	local out = ""
+	local outputString = ""
     for k in string.gmatch(sText, "[^&]+") do
         seperated[#seperated+1] = {string.sub(k, 1, 1), string.sub(k, 2)}
     end
 	seperated = escape(seperated)
 	for k, v in pairs(seperated) do
-		out = out..v
+		outputString = outputString..v
 	end
-	return out
+	return outputString
 end
-
-return this
+return colorAPI
