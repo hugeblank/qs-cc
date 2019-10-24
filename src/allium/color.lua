@@ -134,8 +134,7 @@ colorAPI.format = function(sText, bAction)
     outText = string.sub(outText, 1, -2)..']'
     return outText
 end
-
-colorAPI.deformat = function(string)
+colorAPI.deformat = function(sText)
     local seperated = {}
 	local outputString = ""
     for k in string.gmatch(sText, "[^&]+") do
@@ -147,5 +146,4 @@ colorAPI.deformat = function(string)
 	end
 	return outputString
 end
-
 return colorAPI
