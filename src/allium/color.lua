@@ -104,7 +104,7 @@ colorAPI.format = function(sText, bAction)
 		elseif other[toParse[1]] ~= nil then
 			if other[toParse[1]] == "hoverEvent" then
 				current["hoverEvent"] = true
-				local ind, bck = string.find(toParse[2], "%{.*%}")
+				local ind, bck = string.find(toParse[2], "%[%[.*%]%]")
 				if ind ~= nil then
 					current["hoverText"] = this.format(toParse[2]:sub(ind+2, bck-2), false)
 					toParse[2] = toParse[2]:sub(bck+1)
