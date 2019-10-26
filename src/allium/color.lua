@@ -11,28 +11,28 @@ local cTable = {
     ["7"] = "gray",
     ["8"] = "dark_gray",
     ["9"] = "blue",
-    a = "green",
-    b = "aqua",
-    c = "red",
-    d = "light_purple",
-    e = "yellow",
-    f = "white"
+    ["a"] = "green",
+    ["b"] = "aqua",
+    ["c"] = "red",
+    ["d"] = "light_purple",
+    ["e"] = "yellow",
+    ["f"] = "white"
 }
 local formats = {
-    l = "bold",
-    n = "underlined",
-    o = "italic",
-    k = "obfuscated",
-    m = "strikethrough",
+    ["l"] = "bold",
+    ["n"] = "underlined",
+	["o"] = "italic",
+    ["k"] = "obfuscated",
+    ["m"] = "strikethrough",
 }
 local actions = {
-    s = "suggest_command",
-    g = "run_command" ,
-    i = "open_url" ,
+    ["s"] = "suggest_command",
+    ["g"] = "run_command" ,
+    ["i"] = "open_url" ,
 }
 local other = {
-    h = "hoverEvent",
-    r = "reset",
+    ["h"] = "hoverEvent",
+    ["r"] = "reset",
 }
 local dCurrent = {
 	format = {
@@ -48,17 +48,7 @@ local dCurrent = {
 	actionText = "",
 	hoverText = "",
 }
-local function escape(tbl)
-	for k, v in pairs(tbl) do
-		if v[2]:find("\\") == v[2]:len() then
-			tbl[k] = {v[1], v[2]:sub(1, -2).."&"..tbl[tonumber(k)+1][1]..tbl[tonumber(k)+1][2]}
-			table.remove(tbl, tonumber(k)+1)
-			local ret = escape(tbl)
-			return ret
-		end
-	end
-	return tbl
-end
+
 local function copy(tbl)
 	local ret = {}
 	for k, v in pairs(tbl) do
@@ -70,80 +60,100 @@ local function copy(tbl)
 	end
 	return ret
 end
-colorAPI.format = function(sText, bAction)
-	if type(bAction) ~= "boolean" then
-		bAction = true
+
+local seperate = function(str)
+	local outTbl = {}
+	local tmpStr = ""
+	local argument = ""
+	local params = 0
+	local start = false
+	for i = 1, str:len() do
+		local prev
+		if i > 1 then
+			prev = str:sub(i-1, i-1)
+		end
+		local current = str:sub(i, i)
+		local next
+		if i < str:len() then
+			next = str:sub(i+1, i+1)
+		end
+		if next == "(" and (params > 0 or prev == "&") then
+			params = params + 1
+			if params == 1 then
+				start = true
+			end
+		elseif prev == ")" and params > 0 then
+			params = params - 1
+		end
+		if current == "&" and next ~= "&" and prev ~= "&" and params == 0 then
+			table.insert(outTbl, {tmpStr, argument})
+			tmpStr = ""
+			argument = ""
+		end
+		if params > 0 and not start then
+			argument = argument..current
+		elseif current ~= "&" or (prev ~= "&" and current == "&") then
+			start = false
+			tmpStr = tmpStr..current
+		end
 	end
-    local current = copy(dCurrent)
-    local seperated = {}
-    sText = "&r"..sText
-    for k in string.gmatch(sText, "[^&]+") do
-        seperated[#seperated+1] = {k:sub(1, 1), k:sub(2)}
-    end
-    local outText = '["",'
-    local prev
-	seperated = escape(seperated)
-    for _, toParse in pairs(seperated) do
-        if cTable[toParse[1]] ~= nil then
-            current["color"] = cTable[toParse[1]]
-        elseif formats[toParse[1]] ~= nil then 
-			if current["format"][formats[toParse[1]]] == false then
-				current["format"][formats[toParse[1]]] = true
-		    else
-				current["format"][formats[toParse[1]]] = false
-			end
-		elseif actions[toParse[1]] ~= nil then
-			current["action"] = actions[toParse[1]]
-			local ind, bck = string.find(toParse[2], "%[%[.*%]%]")
-			if ind ~= nil then
-				current["actionText"] = toParse[2]:sub(ind+2, bck-2)
-				toParse[2] = toParse[2]:sub(bck+1)
-			else
-				current["actionText"] = toParse[2]
-			end
-		elseif other[toParse[1]] ~= nil then
-			if other[toParse[1]] == "hoverEvent" then
-				current["hoverEvent"] = true
-				local ind, bck = string.find(toParse[2], "%[%[.*%]%]")
-				if ind ~= nil then
-					current["hoverText"] = colorAPI.format(toParse[2]:sub(ind+2, bck-2), false)
-					toParse[2] = toParse[2]:sub(bck+1)
-				else
-					current["hoverText"] = toParse[2]
-				end
-			elseif other[toParse[1]] == "reset" then
-				current = copy(dCurrent)
+	table.insert(outTbl, {tmpStr, argument})
+	return outTbl
+end
+
+colorAPI.format = function(str)
+	local outTbl = {}
+	local currentFormatting = copy(dCurrent)
+	str = seperate(str)
+	for _, v in pairs(str) do
+		local operator = v[1]:sub(2,2)
+		local text = v[1]:sub(3)
+		if cTable[operator] then
+			currentFormatting.color = cTable[operator]
+			text = v[2]..text
+		elseif formats[operator] then
+			currentFormatting.format[formats[operator]] = not currentFormatting.format[formats[operator]]
+			text = v[2]..text
+		elseif actions[operator] then
+			currentFormatting.action = actions[operator]
+			currentFormatting.actionText = v[2]:sub(2, -2)
+		elseif other[operator] then
+			if other[operator] == "reset" then
+				currentFormatting = copy(dCurrent)
+				text = v[2]..text
+			elseif other[operator] == "hoverEvent" then
+				currentFormatting.hoverEvent = true
+				currentFormatting.hoverText = v[2]:sub(2, -2)
 			end
 		else
-			toParse[2] = "&"..toParse[1]..toParse[2]
-		end
-        outText = outText..'{"text":"'..toParse[2]..'","color":"'..current["color"]..'"'
-		for k, v in pairs(current["format"]) do
-			if v then
-				outText = outText..",\""..k.."\":true"
+			if operator ~= "" then
+				text = "&"..operator..v[2]..text
 			end
 		end
-		if current["action"] ~= false and bAction then
-			outText = outText..',"clickEvent":{"action":"'..current["action"]..'","value":"'..current["actionText"]..'"}'
+		local block = {
+			["text"] = text,
+			["color"] = currentFormatting.color,
+			["bold"] = currentFormatting.format.bold,
+			["underlined"] = currentFormatting.format.underlined,
+			["italic"] = currentFormatting.format.italic,
+			["strikethrough"] = currentFormatting.format.strikethrough,
+			["obfuscated"] = currentFormatting.format.obfuscated,
+		}
+		if currentFormatting.action then
+			block["clickEvent"] = {
+				["action"] = currentFormatting.action,
+				["value"] = currentFormatting.actionText
+			}
 		end
-		if current["hoverEvent"] ~= false and bAction then
-			outText = outText..',"hoverEvent":{"action":"show_text","value":'..current["hoverText"]..'}'
+		if currentFormatting.hoverEvent then
+			block["hoverEvent"] = {
+				["action"] = "show_text",
+				["value"] = currentFormatting.hoverText
+			}
 		end
-        outText = outText..'},'
-    end
-    outText = string.sub(outText, 1, -2)..']'
-    return outText
-end
-colorAPI.deformat = function(sText)
-    local seperated = {}
-	local outputString = ""
-    for k in string.gmatch(sText, "[^&]+") do
-        seperated[#seperated+1] = {string.sub(k, 1, 1), string.sub(k, 2)}
-    end
-	seperated = escape(seperated)
-	for k, v in pairs(seperated) do
-		outputString = outputString..v
+		table.insert(outTbl, block)
 	end
-	return outputString
+	return outTbl
 end
+
 return colorAPI
