@@ -106,29 +106,32 @@ colorAPI.format = function(str)
 	local currentFormatting = copy(dCurrent)
 	str = seperate(str)
 	for _, v in pairs(str) do
+		local first = v[1]:sub(1,1)
 		local operator = v[1]:sub(2,2)
 		local text = v[1]:sub(3)
-		if cTable[operator] then
-			currentFormatting.color = cTable[operator]
-			text = v[2]..text
-		elseif formats[operator] then
-			currentFormatting.format[formats[operator]] = not currentFormatting.format[formats[operator]]
-			text = v[2]..text
-		elseif actions[operator] then
-			currentFormatting.action = actions[operator]
-			currentFormatting.actionText = v[2]:sub(2, -2)
-		elseif other[operator] then
-			if other[operator] == "reset" then
-				currentFormatting = copy(dCurrent)
+		if first == "&" then
+			if cTable[operator] then
+				currentFormatting.color = cTable[operator]
 				text = v[2]..text
-			elseif other[operator] == "hoverEvent" then
-				currentFormatting.hoverEvent = true
-				currentFormatting.hoverText = v[2]:sub(2, -2)
+			elseif formats[operator] then
+				currentFormatting.format[formats[operator]] = not currentFormatting.format[formats[operator]]
+				text = v[2]..text
+			elseif actions[operator] then
+				currentFormatting.action = actions[operator]
+				currentFormatting.actionText = v[2]:sub(2, -2)
+			elseif other[operator] then
+				if other[operator] == "reset" then
+					currentFormatting = copy(dCurrent)
+					text = v[2]..text
+				elseif other[operator] == "hoverEvent" then
+					currentFormatting.hoverEvent = true
+					currentFormatting.hoverText = v[2]:sub(2, -2)
+				end
+			else
+				text = first..operator..v[2]..text
 			end
 		else
-			if operator ~= "" then
-				text = "&"..operator..v[2]..text
-			end
+			text = first..operator..v[2]..text
 		end
 		local block = {
 			["text"] = text,
