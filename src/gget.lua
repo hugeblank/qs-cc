@@ -1,53 +1,39 @@
 -- gget by hugeblank
 -- Downloads and installs repositories and their submodules much like the beloved gitget
--- Usage: gget username repository branch[default=master] path[default=/]
+-- Usage: gget <username> <repository> [branch=main] [path=/]
+-- This program is designed for use by installer scripts. Usage in this case would be:
+-- wget run https://raw.githubusercontent.com/hugeblank/qs-cc/master/src/gget.lua <username> <repository> [branch=main] [path=/]
 local args = {...}
 local dir = fs.getDir(shell.getRunningProgram())
-if not fs.exists(dir.."/nap.lua") then
+local github
+do
     local req = http.get("https://gist.githubusercontent.com/hugeblank/0184e7eeb638d9034d06284eaf0e8ca0/raw/nap.lua")
     if not req then
-        error("Could not download necessary APIs", 2)
+        error("Could not download nap", 2)
     end 
-    local file = fs.open(dir.."/nap.lua", "w")
-    file.write(req.readAll())
-    file.close()
+    github = load(req.readAll(), "nap", nil, _ENV)()("https://api.github.com/")
+    req.close()
 end
-if not fs.exists(dir.."/json.lua") then -- json parse by RXI, check it out!
-    local req = http.get("https://raw.githubusercontent.com/rxi/json.lua/master/json.lua")
-    if not req then
-        error("Could not download necessary APIs", 2)
-    end 
-    local file = fs.open(dir.."/json.lua", "w")
-    file.write(req.readAll())
-    file.close()
-end
-local json, github = dofile(dir.."/json.lua"), dofile(dir.."/nap.lua")("https://api.github.com/")
-local user, repo, branch, path = table.unpack(args)
-if not branch then branch = "master" end
-if not path then path = "/" end
-if #args < 2 then
-    print("gget user repo [branchname=master] [path=/]") -- :thinky: looks familiar
-    return 0
-end
+
 local function gget(user, repo, branch, path)
     path = fs.combine(path or "", "")
-    branch = branch or "master"
-    local function downFile(url, path) -- Download a file asynchronously
+    branch = branch or "main"
+    local function downFile(url, path) -- Download a file "asynchronously"
         local req = http.request(url)
         if not req then
             error("Could not download file "..path, 4)
         end
         return url, path
     end
-    local function downJSON(call, repo) -- Download and parse a presumed JSON object
+    local function getJSON(call, repo) -- Download and parse a presumed JSON object
         if call then
-            call = json.decode(call.readAll())
+            call = textutils.unserialiseJSON(call.readAll())
         else
             error("Could not locate repository "..repo, 4)
         end
         return call
     end
-    local repository = downJSON(github.repos[user][repo].git.trees[branch]({
+    local repository = getJSON(github.repos[user][repo].git.trees[branch]({
         method = "GET",
         query = {
             recursive = 1
@@ -62,7 +48,7 @@ local function gget(user, repo, branch, path)
             fs.makeDir(path.."/"..repository.tree[i].path)
         elseif repository.tree[i].type == "commit" then
             requests[#requests+1] = {function()
-                local contents = downJSON(github.repos[user][repo].contents[repository.tree[i].path]({
+                local contents = getJSON(github.repos[user][repo].contents[repository.tree[i].path]({
                     method = "GET"
                 }), repo)
                 local subuser, subrepo, subbranch, subpath
@@ -79,6 +65,14 @@ local function gget(user, repo, branch, path)
     end
     return requests
 end
+
+if #args < 2 then
+    print("gget user repo [branchname=main] [path=/]") -- :thinky: looks familiar
+    return 0
+end
+local user, repo, branch, path = table.unpack(args)
+branch = branch or "main"
+path = path or "/"
 
 parallel.waitForAny(function() 
     local function download(reqs) 
@@ -110,11 +104,12 @@ parallel.waitForAny(function()
             end
         end
     end
-    local requests = gget(table.unpack(args))
+
+    local requests = gget(user, repo, branch, path)
     download(requests)
 end,
 function()
-    write("Downloading "..repo.." to /"..fs.combine(path, "").." ")
+    print("Downloading "..user.."/"..repo.." on branch "..branch.." to /"..fs.combine(path, "").." ")
     local function write(str)
         local x, y = term.getCursorPos()
         term.write(str)

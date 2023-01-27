@@ -11,6 +11,6 @@ Various **Q**uick **S**cripts I slap together in CC for your enjoyment
 - `skymodem`: custom peripheral to interface with skynet as a wireless modem
 
 ## Allium
-These programs were specially designed for functionality with [Allium](https://github.com/hugeblank/Allium). They could be useful elsewhere, hence their existence here.
+These programs were specially designed for functionality with [Allium CC](https://github.com/hugeblank/Allium-CC). They could be useful elsewhere, hence their existence here.
 - `color`: Parses hex codes prefixed with an ampersand into a JSON string for the command /tellraw
 - `mojson`: Parses Mojang's weird NBT format into a Lua table.

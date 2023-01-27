@@ -13,7 +13,7 @@
         - True if detach was successful, false if failed (nothing present on side)
     ]]
 
-    local peripheral, native, customs, expect, ocall = {}, _G.peripheral, {}, _G["~expect"], pcall
+    local peripheral, native, customs, expect, ocall = {}, _G.peripheral, {}, require("cc.expect").expect, pcall
 
     local pcall = function(func, ...)
         local suc = {ocall(func, ...)}

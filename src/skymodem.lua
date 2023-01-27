@@ -51,7 +51,7 @@ if not fs.exists("skynet.lua") then
     file.write(content.readAll())
     file.close() content.close()
 end
-local skynet, expect = require("skynet"), _G["~expect"]
+local skynet, expect = require("skynet"), require("cc.expect").expect
 
 local function createModem()
     local open, modem, channels = false, {}, {}

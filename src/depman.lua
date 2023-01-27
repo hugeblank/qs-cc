@@ -30,8 +30,7 @@ do -- Block to keep request value private
         file.close()
     end
     if not fs.exists("semver.lua") then
-        semver = load(req.readAll())()
-        req.close()
+        error("Could not save semver, is the disk full?")
     else
         semver = require("semver")
     end

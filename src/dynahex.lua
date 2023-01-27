@@ -1,8 +1,5 @@
 -- DynaHex by hugeblank
 -- Dynamically load and unload palette segments
---[[ BEGIN LICENSE
-I, hugeblank formally do not give a rats arse about what you do with this code.
-END LICENSE ]]
 
 local this = {} -- This API
 local reserved = {} -- Colors set based on how many objects refer to them. If this number is 0 at any index then that color is not referred.
@@ -16,7 +13,7 @@ end
 this.load = function(object) -- Put a table with one or more hex values (or a table with 3 floats) to reserve 
     local palette = {} -- Object that's returned
     for k, v in pairs(object) do -- For each value
-        if type(v) == "table", and #v == 3 then -- If the value is a table containing 3 numbers
+        if type(v) == "table" and #v == 3 then -- If the value is a table containing 3 numbers
             for i = 1, #v do -- For each index
                 if type(v[i]) ~= "number" then -- If it's not a number
                      return false, 'inv', k -- Return false with the invalid tag
